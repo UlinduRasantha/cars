@@ -1,10 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-import feature1 from '../assets/feature_1.png'
-import feature2 from '../assets/feature_2.png'
-import feature3 from '../assets/feature_3.png'
-import feature4 from '../assets/feature_4.png'
+import featuresVideo from '../assets/features.mp4'
 
 const FEATURES = [
   {
@@ -13,7 +10,6 @@ const FEATURES = [
     subtitle: '760 HP Performance',
     description:
       'Engineered with a 2.65L Eaton supercharger, cross-plane crankshaft, and high-flow cylinder heads, producing an unmatched 760 naturally aspirated horsepower with instant throttle response.',
-    image: feature2,
     tag: 'POWERHOUSE',
   },
   {
@@ -22,7 +18,6 @@ const FEATURES = [
     subtitle: 'Track-Tuned Suspension',
     description:
       'Monitors road conditions 1,000 times per second using magnetorheological fluid shock absorbers to instantly adjust damping force for ultimate high-speed stability and cornering.',
-    image: feature1,
     tag: 'HANDLING',
   },
   {
@@ -31,7 +26,6 @@ const FEATURES = [
     subtitle: 'High-Thermal Performance',
     description:
       'Massive 16.5-inch two-piece cross-drilled front rotors paired with 6-piston aluminum Brembo calipers, delivering track-grade stopping power without fading under heat.',
-    image: feature3,
     tag: 'STOPPING POWER',
   },
   {
@@ -40,204 +34,313 @@ const FEATURES = [
     subtitle: 'Downforce Engineering',
     description:
       'Functional carbon fiber rear spoiler and front splitter generate over 550 lbs of downforce at 180+ MPH, grounding the Dark Horse GT500 through aggressive high-speed turns.',
-    image: feature4,
     tag: 'AERODYNAMICS',
   },
 ]
 
-export default function FeaturesSection() {
-  const [activeIndex, setActiveIndex] = useState(0)
+export default function FeaturesSection({ scrollContainerId }) {
+  const [activeIndex, setActiveIndex]     = useState(0)
+  const [scrollProgress, setScrollProgress] = useState(0) // 0..1 within section
+  const [isScrolling, setIsScrolling]     = useState(false) // true while user is actively scrolling
 
-  // Auto-play feature slider every 6 seconds
+  const outerRef       = useRef(null)
+  const videoRef       = useRef(null)
+  const scrollTimerRef = useRef(null) // debounce handle
+
+  // ── Scroll handler ────────────────────────────────────────────────────────
   useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % FEATURES.length)
-    }, 6000)
-    return () => clearInterval(timer)
-  }, [])
+    const scrollEl = scrollContainerId
+      ? document.getElementById(scrollContainerId)
+      : window
+    if (!scrollEl) return
+
+    const handleScroll = () => {
+      const outer = outerRef.current
+      if (!outer) return
+
+      const rect           = outer.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const totalScrollable = outer.offsetHeight - viewportHeight
+
+      // Only act when section is pinned (sticky) in the viewport
+      const pinned = rect.top <= 0 && rect.bottom >= viewportHeight
+      if (!pinned) return
+
+      if (totalScrollable <= 0) return
+
+      const scrolled  = Math.max(0, -rect.top)
+      const progress  = Math.min(1, scrolled / totalScrollable)
+      setScrollProgress(progress)
+
+      const newIndex = Math.min(
+        FEATURES.length - 1,
+        Math.floor(progress * FEATURES.length)
+      )
+      setActiveIndex(newIndex)
+
+      // ── Active-scroll detection ──────────────────────────────────────────
+      // Mark as scrolling immediately
+      setIsScrolling(true)
+
+      // Reset the debounce timer — pause video 300ms after last scroll event
+      clearTimeout(scrollTimerRef.current)
+      scrollTimerRef.current = setTimeout(() => {
+        setIsScrolling(false)
+      }, 300)
+    }
+
+    scrollEl.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+    return () => {
+      scrollEl.removeEventListener('scroll', handleScroll)
+      clearTimeout(scrollTimerRef.current)
+    }
+  }, [scrollContainerId])
+
+  // ── Play video ONLY while user is actively scrolling ─────────────────────
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    if (isScrolling) {
+      video.play().catch(() => {})
+    } else {
+      video.pause()
+    }
+  }, [isScrolling])
 
   const current = FEATURES[activeIndex]
 
+  // Progress bar width for the current step (0..1 within that feature's slot)
+  const stepSize = 1 / FEATURES.length
+  const stepProgress = Math.min(
+    1,
+    (scrollProgress - activeIndex * stepSize) / stepSize
+  )
+
   return (
-    <section className="relative w-full min-h-screen bg-[#07060a] text-white overflow-hidden py-24 px-12 md:px-20 select-none flex flex-col justify-between">
-      {/* ══ Background Dot Grid Texture ════════════════════════════════════ */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-20"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)',
-          backgroundSize: '36px 36px',
-        }}
-      />
+    /*
+     * Outer wrapper — tall enough for one full scroll-stop per feature.
+     * height = FEATURES.length × 100vh so sticky content stays pinned
+     * for exactly that much scroll distance.
+     */
+    <section
+      ref={outerRef}
+      className="relative"
+      style={{ height: `${FEATURES.length * 100}vh` }}
+    >
+      {/* ── Sticky inner viewport ─────────────────────────────────────────── */}
+      <div className="sticky top-0 w-full h-screen text-white overflow-hidden flex flex-col justify-between py-10 px-12 md:px-20 select-none">
 
-      {/* ══ Ambient Red Background Glow ════════════════════════════════════ */}
-      <div
-        className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none opacity-15 blur-[120px]"
-        style={{ background: 'radial-gradient(circle, #dc2626 0%, transparent 70%)' }}
-      />
+        {/* ══ Full-Bleed Background Video ══════════════════════════════════ */}
+        <video
+          ref={videoRef}
+          src={featuresVideo}
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ zIndex: 0 }}
+        />
 
-      {/* ══ Header ═════════════════════════════════════════════════════════ */}
-      <div className="relative z-10 flex items-center justify-between">
-        <h2
-          className="text-5xl md:text-6xl font-bold tracking-tight text-white"
-          style={{ fontFamily: "'Bebas Neue', 'Inter', sans-serif" }}
+        {/* ══ Cinematic Overlay Gradients ═══════════════════════════════════ */}
+        {/* Left-heavy dark gradient → text legibility */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(105deg, rgba(7,6,10,0.97) 0%, rgba(7,6,10,0.85) 38%, rgba(7,6,10,0.50) 68%, rgba(7,6,10,0.25) 100%)',
+            zIndex: 1,
+          }}
+        />
+        {/* Bottom vignette */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to top, rgba(7,6,10,0.85) 0%, transparent 28%)',
+            zIndex: 1,
+          }}
+        />
+        {/* Top vignette */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(7,6,10,0.75) 0%, transparent 22%)',
+            zIndex: 1,
+          }}
+        />
+
+        {/* ══ Scanline Texture ══════════════════════════════════════════════ */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.035]"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,1) 2px, rgba(255,255,255,1) 3px)',
+            zIndex: 2,
+          }}
+        />
+
+        {/* ══ Ambient Red Glow ══════════════════════════════════════════════ */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full pointer-events-none opacity-10 blur-[140px]"
+          style={{ background: 'radial-gradient(circle, #dc2626 0%, transparent 70%)', zIndex: 2 }}
+        />
+
+        {/* ══ Header ════════════════════════════════════════════════════════ */}
+        <div className="relative flex items-center top-10 left-25 justify-between px-6" style={{ zIndex: 10 }}>
+          <h2
+            className="text-5xl md:text-6xl font-bold tracking-tight text-white"
+            style={{ fontFamily: "'Bebas Neue', 'Inter', sans-serif" }}
+          >
+            Features
+          </h2>
+          <div className="flex items-center gap-3 text-xs tracking-[0.25em] uppercase text-zinc-400 font-semibold">
+            <span className="w-8 h-px bg-red-600" />
+            <span>GT500 Engineering</span>
+          </div>
+        </div>
+
+        {/* ══ Main Content ══════════════════════════════════════════════════ */}
+        <div
+          className="relative flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center py-6 px-2 lg:px-4"
+          style={{ zIndex: 10 }}
         >
-          Features
-        </h2>
-        <div className="flex items-center gap-3 text-xs tracking-[0.25em] uppercase text-zinc-500 font-semibold">
-          <span className="w-8 h-px bg-red-600" />
-          <span>GT500 Engineering</span>
-        </div>
-      </div>
-
-      {/* ══ Main Content Grid ══════════════════════════════════════════════ */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center my-auto py-10">
-        
-        {/* ── Left Side: Feature Description ───────────────────────────── */}
-        <div className="lg:col-span-5 space-y-8 z-20">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current.id}
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="space-y-4"
-            >
-              {/* Feature Subtitle */}
-              <h3 className="text-2xl md:text-3xl font-semibold text-zinc-100 tracking-wide">
-                {current.title}
-              </h3>
-
-              {/* Tag / Category */}
-              <div className="inline-block px-3 py-1 bg-red-600/15 border border-red-600/30 rounded text-[10px] font-bold tracking-[0.25em] text-red-500 uppercase">
-                {current.tag}
-              </div>
-
-              {/* Description Paragraph */}
-              <p className="text-zinc-400 text-sm md:text-base leading-relaxed font-normal pt-2 max-w-md">
-                {current.description}
-              </p>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* ── Feature Progress Tabs ─────────────────────────────────── */}
-          <div className="flex items-center gap-3 pt-4">
-            {FEATURES.map((feat, idx) => (
-              <button
-                key={feat.id}
-                onClick={() => setActiveIndex(idx)}
-                className="group flex-1 py-2 focus:outline-none"
+          {/* ── Feature Description (left) ─────────────────────────────── */}
+          <div className="lg:col-start-2 lg:col-span-5 space-y-8 pl-4">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current.id}
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.45, ease: 'easeOut' }}
+                className="space-y-5"
               >
-                <div className="relative w-full h-[3px] bg-zinc-800 rounded-full overflow-hidden transition-colors group-hover:bg-zinc-700">
-                  {idx === activeIndex && (
-                    <motion.div
-                      layoutId="activeBar"
-                      className="absolute inset-0 bg-red-600 shadow-[0_0_12px_rgba(220,38,38,0.8)]"
-                      transition={{ duration: 0.4 }}
-                    />
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* ── SEE MORE Hexagon / Angled Button ─────────────────────── */}
-          <div className="pt-2">
-            <button
-              className="group relative px-8 py-3.5 bg-transparent border border-zinc-700 hover:border-red-600 text-xs font-bold tracking-[0.25em] uppercase text-zinc-300 hover:text-white transition-all duration-300"
-              style={{
-                clipPath:
-                  'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)',
-              }}
-            >
-              <span className="relative z-10 flex items-center gap-3">
-                SEE MORE
-                <svg
-                  className="w-4 h-4 text-red-500 group-hover:translate-x-1 transition-transform"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
+                {/* Feature number */}
+                <span
+                  className="text-[11px] font-bold tracking-[0.35em] uppercase text-red-500"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
-              </span>
-            </button>
+                  {current.id} / {String(FEATURES.length).padStart(2, '0')}
+                </span>
+
+                {/* Feature Title */}
+                <h3 className="text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight drop-shadow-lg">
+                  {current.title}
+                </h3>
+
+                {/* Tag */}
+                <div className="inline-block px-3 py-1 bg-red-600/20 border border-red-600/40 rounded text-[10px] font-bold tracking-[0.25em] text-red-400 uppercase backdrop-blur-sm">
+                  {current.tag}
+                </div>
+
+                {/* Description */}
+                <p className="text-zinc-300 text-sm md:text-base leading-relaxed max-w-md drop-shadow">
+                  {current.description}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* ── Scroll-progress tabs ──────────────────────────────────── */}
+            <div className="flex items-center gap-3 pt-2">
+              {FEATURES.map((feat, idx) => (
+                <div key={feat.id} className="flex-1 relative">
+                  {/* Track */}
+                  <div className="w-full h-[3px] bg-zinc-800/80 rounded-full overflow-hidden">
+                    {/* Fill */}
+                    <div
+                      className="h-full bg-red-600 rounded-full transition-none"
+                      style={{
+                        width:
+                          idx < activeIndex
+                            ? '100%'
+                            : idx === activeIndex
+                            ? `${stepProgress * 100}%`
+                            : '0%',
+                        boxShadow:
+                          idx === activeIndex
+                            ? '0 0 10px rgba(220,38,38,0.8)'
+                            : 'none',
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── SEE MORE button (shown on last feature) ───────────────── */}
+            <AnimatePresence>
+              {activeIndex === FEATURES.length - 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <button
+                    className="group relative px-8 py-3.5 bg-zinc-950/40 backdrop-blur-sm border border-zinc-600/60 hover:border-red-600 text-xs font-bold tracking-[0.25em] uppercase text-zinc-300 hover:text-white transition-all duration-300"
+                    style={{
+                      clipPath:
+                        'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)',
+                    }}
+                  >
+                    <span className="relative z-10 flex items-center gap-3">
+                      SEE MORE
+                      <svg
+                        className="w-4 h-4 text-red-500 group-hover:translate-x-1 transition-transform"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                      </svg>
+                    </span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
 
-        {/* ── Right Side: Angled Slash Panels + Car Image ────────────── */}
-        <div className="lg:col-span-7 relative flex items-center justify-center min-h-[420px]">
-          
-          {/* Angled Parallelogram Background Slashes (Matching reference design) */}
-          <div className="absolute inset-0 flex items-center justify-center gap-6 pointer-events-none opacity-40">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="w-24 md:w-32 h-[340px] md:h-[420px] bg-gradient-to-b from-zinc-700/30 via-zinc-800/10 to-transparent border-t border-zinc-600/30"
-                style={{
-                  transform: 'skewX(-22deg)',
-                  boxShadow: i === 1 ? '0 0 30px rgba(220,38,38,0.15)' : 'none',
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Active Image Showcase with Smooth Transition */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current.id}
-              initial={{ opacity: 0, scale: 0.94, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: -12 }}
-              transition={{ duration: 0.45, ease: 'easeOut' }}
-              className="relative z-10 w-full max-w-lg flex items-center justify-center p-2 rounded-xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur-md overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
-            >
-              <img
-                src={current.image}
-                alt={current.title}
-                className="w-full h-[340px] md:h-[380px] object-cover rounded-lg"
-              />
-              <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#07060a]/80 via-transparent to-transparent" />
-            </motion.div>
-          </AnimatePresence>
-
-          {/* ── Right Vertical Counter & Slider Index ──────────────────── */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center gap-3 z-20">
+          {/* ── Right: Vertical Feature Counter ──────────────────────────── */}
+          <div className="lg:col-start-12 flex flex-col items-center gap-4">
             {FEATURES.map((feat, idx) => (
-              <button
+              <div
                 key={feat.id}
-                onClick={() => setActiveIndex(idx)}
-                className="group flex items-center gap-2 focus:outline-none"
+                className="flex items-center gap-2"
               >
                 <span
-                  className={`text-[10px] font-bold tracking-widest transition-colors ${
-                    idx === activeIndex ? 'text-red-500' : 'text-zinc-600 group-hover:text-zinc-400'
+                  className={`text-[10px] font-bold tracking-widest transition-colors duration-300 ${
+                    idx === activeIndex ? 'text-red-500' : 'text-zinc-600'
                   }`}
                 >
                   {feat.id}
                 </span>
                 <div
-                  className={`h-px transition-all ${
-                    idx === activeIndex ? 'w-6 bg-red-600' : 'w-2 bg-zinc-700 group-hover:w-4'
+                  className={`h-px transition-all duration-300 ${
+                    idx === activeIndex
+                      ? 'w-6 bg-red-600 shadow-[0_0_6px_rgba(220,38,38,0.8)]'
+                      : idx < activeIndex
+                      ? 'w-3 bg-zinc-500'
+                      : 'w-2 bg-zinc-700'
                   }`}
                 />
-              </button>
+              </div>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* ══ Footer Bar ═════════════════════════════════════════════════════ */}
-      <div className="relative z-10 flex items-center justify-between border-t border-zinc-800/60 pt-6 text-[10px] tracking-[0.25em] uppercase text-zinc-500">
-        <div>FORD MUSTANG DARK HORSE EDITION</div>
-        <div className="flex items-center gap-6">
-          <a href="#" className="hover:text-white transition-colors">SPECIFICATIONS</a>
-          <span>·</span>
-          <a href="#" className="hover:text-white transition-colors">PERFORMANCE</a>
-          <span>·</span>
-          <a href="#" className="hover:text-white transition-colors">GALLERY</a>
+        {/* ══ Footer Bar ════════════════════════════════════════════════════ */}
+        <div
+          className="relative flex items-center justify-between border-t border-zinc-700/50 pt-6 text-[10px] tracking-[0.25em] uppercase text-zinc-500"
+          style={{ zIndex: 10 }}
+        >
+          <div>FORD MUSTANG DARK HORSE EDITION</div>
+          <div className="flex items-center gap-6">
+            <a href="#" className="hover:text-white transition-colors">SPECIFICATIONS</a>
+            <span>·</span>
+            <a href="#" className="hover:text-white transition-colors">PERFORMANCE</a>
+            <span>·</span>
+            <a href="#" className="hover:text-white transition-colors">GALLERY</a>
+          </div>
         </div>
       </div>
     </section>
