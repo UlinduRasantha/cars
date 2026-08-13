@@ -186,7 +186,7 @@ export default function FeaturesSection({ scrollContainerId }) {
         />
 
         {/* ══ Header ════════════════════════════════════════════════════════ */}
-        <div className="relative flex items-center top-10 left-25 justify-between px-6" style={{ zIndex: 10 }}>
+        <div className="absolute flex items-center top-10 left-25 right-10 justify-between px-6" style={{ zIndex: 10 }}>
           <h2
             className="text-5xl md:text-6xl font-bold tracking-tight text-white"
             style={{ fontFamily: "'Bebas Neue', 'Inter', sans-serif" }}

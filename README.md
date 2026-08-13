@@ -1,21 +1,34 @@
-# React + Vite
+# Ford Mustang GT500 — Cinematic Showcase
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A cinematic, scroll-driven **3D car showcase website** for the **Ford Mustang GT500 Dark Horse Edition**. The site features an interactive 3D model of the Mustang that users can drag and rotate, a scroll-snapping navigation between a full-screen hero and a sticky features panel, ambient video backgrounds, and GSAP-powered entrance animations — delivering an immersive, premium automotive experience.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 🚗 **Interactive 3D car model** — drag to rotate with momentum/inertia, passive mouse-hover tracking
+- 🎬 **Cinematic scroll system** — dark-flash overlay snap between Hero and Features sections
+- 🎥 **Scroll-driven video** — features background video plays only while actively scrolling
+- ✨ **GSAP entrance animations** — staggered letter-by-letter title reveal, nav and bottom content fade-ins
+- 🖱️ **Mouse spotlight** — red radial glow that follows the cursor across the hero
+- 📊 **Scroll progress bar** — per-feature fill bar driven by real scroll position
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Technology | Purpose |
+|---|---|
+| **React 19** | UI framework |
+| **Vite 8** | Build tool & dev server |
+| **Three.js** | 3D rendering engine |
+| **React Three Fiber** | React renderer for Three.js |
+| **@react-three/drei** | Three.js helpers — GLB loader, environment maps, contact shadows |
+| **GSAP** | Entrance & scroll animations |
+| **Framer Motion** | Feature content transitions (AnimatePresence) |
+| **Tailwind CSS v4** | Utility-first styling |
+| **OXLint** | Fast JavaScript linter |
+| **Bebas Neue + Inter** | Display & body typography (Google Fonts) |
 
-## Expanding the Oxlint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
-
-Technologies
-
-Three JS
-Three Fiber
+```bash
+npm install
+npm run dev
+```
