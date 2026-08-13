@@ -16,7 +16,7 @@ export default function HeroSection() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowCar(true)
-    }, 0) // 100ms delay to allow video to play first
+    }, 1000) // 1s delay to allow video to play first
     return () => clearTimeout(timer)
   }, [])
 
@@ -258,11 +258,11 @@ export default function HeroSection() {
         </div>
 
         {/* Bottom Right Credit Handle */}
-        <div className="btm-item">
+        {/* <div className="btm-item">
           <span className="text-zinc-400 hover:text-zinc-200 text-xs font-medium tracking-wide transition-colors cursor-pointer">
-            @svg.graphixx
+            @UR
           </span>
-        </div>
+        </div> */}
       </div>
     </div>
   )
