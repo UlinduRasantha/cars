@@ -16,7 +16,7 @@ export default function HeroSection() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowCar(true)
-    }, 100) // 100ms delay to allow video to play first
+    }, 0) // 100ms delay to allow video to play first
     return () => clearTimeout(timer)
   }, [])
 
